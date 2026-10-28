@@ -1,0 +1,43 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "starkom-scpf"
+dynamic = ["version"]
+description = "The schema compiler of the Starkom Compact Proof Format (SCPF)."
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+authors = [{ name = "Alberto La Rocca", email = "alr@libernet.xyz" }]
+requires-python = ">=3.10"
+dependencies = []
+
+[project.urls]
+Repository = "https://github.com/libernet-xyz/scpf"
+
+[project.scripts]
+scpf = "scpf.cli:main"
+
+[dependency-groups]
+dev = ["mypy>=2.4", "pytest>=9.2", "ruff>=0.17"]
+
+[tool.hatch.version]
+path = "src/scpf/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/scpf"]
+
+[tool.mypy]
+files = ["src", "tests"]
+python_version = "3.10"
+strict = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+extend-select = ["B", "E", "I", "UP"]
