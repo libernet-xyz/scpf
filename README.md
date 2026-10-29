@@ -10,8 +10,8 @@ with regard to both calldata usage and decoding execution.
 
 This package is the SCPF schema compiler: given a schema describing the layout of a proof, it
 generates the Rust code that serializes and deserializes it. The package is both a command line tool
-and a Python library, and only depends on the Python standard library so that build scripts can run
-it without installing anything.
+and a Python library. Its only dependency is Google's `protobuf` package, which it uses to read the
+protobuf descriptors of the messages that the generated code converts from and to.
 
 > [!NOTE]
 > Work in progress: the schema language and the code generator are not there yet.

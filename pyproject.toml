@@ -11,7 +11,7 @@ license = "Apache-2.0"
 license-files = ["LICENSE"]
 authors = [{ name = "Alberto La Rocca", email = "alr@libernet.xyz" }]
 requires-python = ">=3.10"
-dependencies = []
+dependencies = ["protobuf>=7.36,<8"]
 
 [project.urls]
 Repository = "https://github.com/libernet-xyz/scpf"
@@ -20,7 +20,7 @@ Repository = "https://github.com/libernet-xyz/scpf"
 scpf = "scpf.cli:main"
 
 [dependency-groups]
-dev = ["mypy>=2.4", "pytest>=9.2", "ruff==0.17.3"]
+dev = ["mypy>=2.4", "pytest>=9.2", "ruff==0.17.3", "types-protobuf>=7.35,<8"]
 
 [tool.hatch.version]
 path = "src/scpf/__init__.py"

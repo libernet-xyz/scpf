@@ -8,8 +8,8 @@ calldata. An SCPF schema describes the layout of a proof, and the compiler gener
 that serializes and deserializes it.
 """
 
-from scpf.compiler import compile_schema
+from scpf.compiler import Compiler
 
-__all__ = ["compile_schema"]
+__all__ = ["Compiler"]
 
 __version__ = "0.1.0"
