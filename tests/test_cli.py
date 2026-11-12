@@ -13,7 +13,7 @@ from scpf.cli import main
 @pytest.fixture
 def schema_path(tmp_path: pathlib.Path) -> pathlib.Path:
   path = tmp_path / "proof.scpf"
-  path.write_text("x = 42\n")
+  path.write_text('package = "example"\n\nclass Hash:\n  bytes: varint\n')
   return path
 
 
@@ -117,6 +117,20 @@ def test_invalid_schema(
 
   assert status == 1
   assert capsys.readouterr().err.startswith("scpf: ")
+  assert not encoder.exists()
+
+
+def test_schema_not_matching_descriptors(
+  tmp_path: pathlib.Path, descriptor_path: pathlib.Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+  schema = tmp_path / "mismatched.scpf"
+  schema.write_text('package = "example"\n\nclass Missing:\n  value: varint\n')
+  encoder = tmp_path / "encoder.rs"
+
+  status = main(["--proto", str(descriptor_path), "--encoder", str(encoder), str(schema)])
+
+  assert status == 1
+  assert capsys.readouterr().err.startswith("scpf: line 3: ")
   assert not encoder.exists()
 
 

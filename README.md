@@ -13,6 +13,8 @@ generates the Rust code that serializes and deserializes it. The package is both
 and a Python library. Its only dependency is Google's `protobuf` package, which it uses to read the
 protobuf descriptors of the messages that the generated code converts from and to.
 
+The binary format is specified in [FORMAT.md](FORMAT.md).
+
 > [!NOTE]
 > Work in progress: the schema language and the code generator are not there yet.
 
