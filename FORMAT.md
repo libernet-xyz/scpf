@@ -11,6 +11,12 @@ calldata, so it minimizes both the size of the data and the work needed to decod
 - it omits every length that the decoder can derive, e.g. from earlier fields;
 - it stores repeated 32-byte words only once.
 
+SCPF intentionally only supports prime fields of about 256 bits, such as BlueSky, Schraderbrau, and
+the scalar field of BLS12-381. The EVM is a 256-bit machine and does arithmetic in these fields
+natively with its `ADDMOD` and `MULMOD` instructions, and every element fits in one 32-byte word.
+Proofs over small fields, e.g. KoalaBear and Goldilocks, would need extension fields for soundness,
+and extension field arithmetic would make them much more expensive to verify.
+
 ## Overview
 
 SCPF data is made of three consecutive parts:
@@ -42,8 +48,7 @@ All multi-byte integers are big-endian.
 | 52     | 12   | Reserved, must be 0.                                                          |
 
 Every field starts at a multiple of 8 bytes, and the pool starts right after the header, at
-offset 64. The reserved bytes leave room for future header fields, which would require a new major
-version.
+offset 64. The reserved bytes leave room for future header fields.
 
 ### Versioning
 
@@ -70,9 +75,9 @@ features, only require a new minor version; all other changes require a new majo
 ### Schema identifier
 
 The schema identifier tells apart data encoded with different schemas, or for different root
-messages of the same schema, even when the layouts happen to coincide. It's the 32-byte SHA3-256
-hash (FIPS 202, not Keccak-256) of the _canonical description_ of the root message. Decoders know
-the identifier they expect, so they never need to compute a hash.
+messages of the same schema, even when the layouts happen to coincide. It's the 32-byte Keccak-256
+hash of the _canonical description_ of the root message, i.e. the hash of Ethereum's `KECCAK256`
+instruction rather than SHA3-256 (FIPS 202).
 
 The identifier is meant to catch mismatches, not attacks: whoever encodes the data writes the header
 too.
@@ -84,12 +89,12 @@ and the order in which classes are declared don't affect it. It contains:
 
 - `root`: the full name of the protobuf message linked to the root message, e.g.
   `starkom.proto.pcs.v10.Proof`;
-- `messages`: the description of the root message and of every message reachable from it through
-  its fields, the root message first and then the others in the order in which a depth-first
-  traversal of the fields first reaches them. Every message is an object with:
+- `messages`: the description of the root message and of every message reachable from it through its
+  fields, the root message first and then the others in the order in which a depth-first traversal
+  of the fields first reaches them. Every message is an object with:
   - `name`: the full name of the linked protobuf message;
-  - `fields`: the fields of the message in stream order, each one an object with the `name` of
-    the field and its `type` (currently always `varint`).
+  - `fields`: the fields of the message in stream order, each one an object with the `name` of the
+    field and its `type` (currently always `varint`).
 
 For example, a schema whose root message is linked to `starkom.proto.pcs.v10.Proof` and has a single
 `degree_bound` varint field has this canonical description (exactly these bytes, without any
@@ -99,8 +104,8 @@ whitespace):
 {"messages":[{"fields":[{"name":"degree_bound","type":"varint"}],"name":"starkom.proto.pcs.v10.Proof"}],"root":"starkom.proto.pcs.v10.Proof"}
 ```
 
-Its SHA3-256 hash, and therefore the schema identifier, is
-`0fdfcffe8a5f465181ac34fabdc34ae510b3b3e41941df0b1717190384d1b2a4`.
+Its Keccak-256 hash, and therefore the schema identifier, is
+`bc7fe0d883bfb57afadb37e725fdbee5bbf302c7cbb3ffbebcbee42413a7b69e`.
 
 As the schema language grows, the canonical description will grow with it, following two rules:
 
@@ -112,19 +117,19 @@ As the schema language grows, the canonical description will grow with it, follo
 
 ## Pool
 
-The pool is a sequence of `pool size` 32-byte words, which the stream refers to by their position
-in the pool (see [Pool references](#pool-references)). It may be empty.
+The pool is a sequence of `pool size` 32-byte words, which the stream refers to by their position in
+the pool (see [Pool references](#pool-references)). It may be empty.
 
 Encoders store every distinct word only once, sorted by decreasing number of references, so that the
 most referenced words get the shortest varint indices: the first 128 words take 1 byte, the next
-16,256 take 2 bytes, and so on. Words with the same number of references are sorted by the position
-of their first reference in the stream.
+16,256 take 2 bytes, and so on.
 
 ## Stream
 
 The stream is a sequence of items in the order defined by the schema, with no tags, lengths,
-padding, or alignment between them. There are three kinds of items: varints, inline words, and pool
-references. The stream ends exactly at the end of the data.
+padding, or alignment between them. There are three kinds of items: [varints](#varints),
+[inline words](#inline-words), and [pool references](#pool-references). The stream ends exactly at
+the end of the data.
 
 ### Varints
 
@@ -160,12 +165,10 @@ Encoders always use the shortest encoding. Decoders also accept longer ones, e.g
 
 ### Inline words
 
-An inline word is a fixed-size byte string stored directly in the stream. Its size is determined by
-the schema.
+An inline word is a 32-byte word stored directly in the stream rather than in the pool.
 
-A field element is stored as an inline word holding the big-endian representation of its canonical
-integer form, in exactly as many bytes as the field requires: 4 for KoalaBear, 8 for Goldilocks,
-31 for KoalaBear^8, and 32 for BlueSky, Schraderbrau, and Goldilocks^4.
+A field element is stored as an inline word holding its integer value, which is less than the
+modulus of the field. Inline words are stored in big-endian byte order.
 
 ### Pool references
 
@@ -186,13 +189,16 @@ Decoders fail if any of the following checks fails:
 - every field element is canonical, i.e. less than the modulus of its field;
 - the stream ends exactly at the end of the data.
 
-## Open questions
+## Non-canonical encodings
 
-- **Canonical encodings.** Decoders accept non-minimal varints, pool words that the stream never
-  refers to, and pools in any order, so the same message can be encoded in several ways. That's
-  harmless for verification, but it means that the encoding of a message isn't unique: hashes of the
-  encoded data can't identify a message, and re-encoding decoded data doesn't always reproduce it.
-  Decoders could reject non-minimal varints and unreferenced pool words cheaply; checking the order
-  of the pool on-chain would be expensive.
-- **Pools of other word sizes.** The pool only holds 32-byte words. Pooling smaller words, e.g. the
-  field elements of small fields, would need one pool per word size.
+SCPF is intentionally non-canonical: a message can have many encodings. Encoders minimize the size
+of the data as described above, but decoders don't check that they did, so they accept varints
+longer than needed, pool words that the stream never refers to or that appear more than once, and
+pool words in any order.
+
+Canonical encodings would cost extra gas for verification for no gain. Decoders only need to recover
+the message, and a proof is valid or invalid regardless of how it's encoded.
+
+Outside the data, canonicality matters for the description hashed into the
+[schema identifier](#schema-identifier): every compiler must derive the same identifier from the
+same schema.
