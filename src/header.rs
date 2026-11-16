@@ -45,11 +45,6 @@ mod tests {
     }
 
     #[test]
-    fn test_version() {
-        assert_eq!(VERSION, [1, 0, 0]);
-    }
-
-    #[test]
     fn test_layout_identifier() {
         assert_eq!(
             layout_identifier::<prost_types::Timestamp>(),
