@@ -33,13 +33,13 @@ pub const VERSION: [u8; 3] = [
 /// The size of the header in bytes.
 const HEADER_SIZE: usize = 64;
 
-/// Returns the schema identifier of SCPF data whose root message is a protobuf message of type `M`:
+/// Returns the layout identifier of SCPF data whose root message is a protobuf message of type `M`:
 /// the Keccak-256 hash of the [full name of the message](`prost::Name::full_name`), e.g.
 /// `starkom.proto.plonk.v10.Proof`.
 ///
 /// This is the hash of Ethereum's `KECCAK256` instruction rather than SHA3-256 (FIPS 202), so a
 /// Solidity decoder can derive the identifier at compile time with `keccak256("...")`.
-pub fn schema_identifier<M: prost::Name>() -> H256 {
+pub fn layout_identifier<M: prost::Name>() -> H256 {
     let mut hasher = sha3::Keccak256::new();
     hasher.update(M::full_name().as_bytes());
     H256::from_slice(hasher.finalize().as_slice())
@@ -129,7 +129,7 @@ impl Encoder {
 
     /// Returns the SCPF data of a root message of type `M`.
     ///
-    /// The header holds [`VERSION`] and the [schema identifier](`schema_identifier`) of `M`.
+    /// The header holds [`VERSION`] and the [layout identifier](`layout_identifier`) of `M`.
     ///
     /// The pool holds every distinct word referenced by the stream once, sorted by decreasing
     /// number of references so that the most referenced words get the shortest pool references.
@@ -157,7 +157,7 @@ impl Encoder {
         data.extend_from_slice(&[0u8; 4]);
         data.extend_from_slice(&VERSION);
         data.extend_from_slice(&[0u8; 5]);
-        data.extend_from_slice(schema_identifier::<M>().as_bytes());
+        data.extend_from_slice(layout_identifier::<M>().as_bytes());
         data.extend_from_slice(&pool_size.to_be_bytes());
         data.extend_from_slice(&[0u8; 12]);
         for word in &pool {
@@ -194,7 +194,7 @@ mod tests {
             &[0, 0, 0, 0][..],
             &VERSION[..],
             &[0, 0, 0, 0, 0][..],
-            schema_identifier::<Root>().as_bytes(),
+            layout_identifier::<Root>().as_bytes(),
             &pool_size.to_be_bytes()[..],
             &[0; 12][..],
         ]
@@ -207,17 +207,17 @@ mod tests {
     }
 
     #[test]
-    fn test_schema_identifier() {
+    fn test_layout_identifier() {
         assert_eq!(
-            schema_identifier::<prost_types::Timestamp>(),
+            layout_identifier::<prost_types::Timestamp>(),
             parse("0x88ac5a42c1e617f23ca0cd6eecb964171d4c8a8a41a4218a632e990b55fd6915")
         );
     }
 
     #[test]
-    fn test_schema_identifier_of_another_message() {
+    fn test_layout_identifier_of_another_message() {
         assert_eq!(
-            schema_identifier::<prost_types::Duration>(),
+            layout_identifier::<prost_types::Duration>(),
             parse("0x1fa07945c8fe200d54562b9c80bbdfefaaf6e79fe3b95531b7dd38c4a8709ce4")
         );
     }
@@ -263,12 +263,12 @@ mod tests {
     }
 
     #[test]
-    fn test_schema_identifier_in_header() {
+    fn test_layout_identifier_in_header() {
         let encoder = Encoder::default();
         let data = encoder.finish::<prost_types::Duration>();
         assert_eq!(
             &data[16..48],
-            schema_identifier::<prost_types::Duration>().as_bytes()
+            layout_identifier::<prost_types::Duration>().as_bytes()
         );
     }
 

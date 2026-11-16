@@ -49,7 +49,7 @@ All multi-byte integers are big-endian.
 | 9      | 1    | Minor version number.                                                         |
 | 10     | 1    | Patch version number.                                                         |
 | 11     | 5    | Reserved, must be 0.                                                          |
-| 16     | 32   | Schema identifier (see [Schema identifier](#schema-identifier)).              |
+| 16     | 32   | Layout identifier (see [Layout identifier](#layout-identifier)).              |
 | 48     | 4    | Pool size: the number of words in the pool, as an unsigned integer.           |
 | 52     | 12   | Reserved, must be 0.                                                          |
 
@@ -62,25 +62,25 @@ The version numbers in the header are those of the
 [`starkom-scpf`](https://crates.io/crates/starkom-scpf) crate that encoded the data, which
 implements this format (see its `VERSION` constant). They version the format itself, i.e. the
 header, the pool, and the encoding of the items, not the layouts of the root messages, which are
-versioned by the [schema identifier](#schema-identifier).
+versioned by the [layout identifier](#layout-identifier).
 
 Decoders must reject data with a different major version number, and ignore the minor and patch
 version numbers. Every change of the format that existing decoders can't read requires a new major
 version of `starkom-scpf`. A minor version can add features to the format, but only new layouts
-use them, and new layouts come with new schema identifiers, which existing decoders reject anyway.
+use them, and new layouts come with new layout identifiers, which existing decoders reject anyway.
 
 The decoders hard-code the major version number they support, e.g. the Solidity decoder of
 Starkom's [EVM verifier](https://github.com/libernet-xyz/evm-verifier).
 
-### Schema identifier
+### Layout identifier
 
-The schema identifier tells apart data with different layouts, e.g. proofs of different protocols,
+The layout identifier tells apart data with different layouts, e.g. proofs of different protocols,
 or of incompatible versions of the same protocol. It's the 32-byte Keccak-256 hash of the full name
 of the root message encoded in UTF-8. Note that this is Keccak-256 as in Ethereum's `KECCAK256`
 instruction, **not** SHA3-256 (FIPS 202).
 
 For example, the root message of a [`starkom-plonk`][starkom-plonk] proof is
-`starkom.proto.plonk.v10.Proof`, so its schema identifier is
+`starkom.proto.plonk.v10.Proof`, so its layout identifier is
 `keccak256("starkom.proto.plonk.v10.Proof")` =
 `781bb0c4b3513d20fb38966e93697ab9c21ea4d2e48cc19ae82d8d00cd1c015e`.
 
@@ -158,7 +158,7 @@ Decoders must reject the data unless all of the following hold:
 - the data must start with the `SCPF` signature;
 - the major version number must be the one they support;
 - all the reserved bytes of the header must be 0;
-- the schema identifier must be the one they expect;
+- the layout identifier must be the one they expect;
 - the pool must fit in the data;
 - every varint and inline word must fit in the data;
 - every pool reference must be less than the pool size;
