@@ -35,8 +35,8 @@ encoder.push_usize(2);
 encoder.push_scalars([Scalar::from_const(12), Scalar::from_const(34)]);
 encoder.push_hash(H256::repeat_byte(0xaa));
 
-// The type of the root message determines the schema identifier in the header. Any protobuf
-// message type implementing `prost::Name` works, e.g. the `Proof` message of `starkom-plonk`.
+// The type of the root message determines the layout identifier in the header. Any protobuf message
+// type implementing `prost::Name` works, e.g. the `Proof` message of `starkom-plonk`.
 let data = encoder.finish::<prost_types::Timestamp>();
 assert_eq!(&data[0..4], b"SCPF");
 ```
@@ -46,7 +46,7 @@ assert_eq!(&data[0..4], b"SCPF");
 The version of this crate is the version of the format, and the encoder writes it in the header of
 the data (see [`VERSION`][version]). Decoders only check the major version number.
 
-The layouts are versioned separately, by the _schema identifier_ in the header: the Keccak-256 hash
+The layouts are versioned separately, by the _layout identifier_ in the header: the Keccak-256 hash
 of the full name of the root message, e.g. `starkom.proto.plonk.v10.Proof`. The version component of
 the protobuf package (`v10`) changes at the first incompatible change, so decoders can tell
 compatible data apart from incompatible data by checking the identifier.

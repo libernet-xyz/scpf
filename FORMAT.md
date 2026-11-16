@@ -16,11 +16,12 @@ calldata, so it minimizes both the size of the data and the work needed to decod
   from the protocol parameters;
 - it stores repeated 32-byte words only once.
 
-SCPF intentionally only supports prime fields of about 256 bits, such as BlueSky, Schraderbrau, and
-the scalar field of BLS12-381. The EVM is a 256-bit machine and does arithmetic in these fields
-natively with its `ADDMOD` and `MULMOD` instructions, and every element fits in one 32-byte word.
-Proofs over small fields, e.g. KoalaBear and Goldilocks, would need extension fields for soundness,
-and extension field arithmetic would make them much more expensive to verify.
+SCPF intentionally only supports prime fields of about 256 bits, such as [BlueSky][bluesky],
+[Schraderbrau][schraderbrau], and the scalar field of BLS12-381. The EVM is a 256-bit machine and
+does arithmetic in these fields natively with its `ADDMOD` and `MULMOD` instructions, and every
+element fits in one 32-byte word. Proofs over small fields, e.g. KoalaBear and Goldilocks, would
+need extension fields for soundness, and extension field arithmetic would make them much more
+expensive to verify.
 
 ## Overview
 
@@ -31,8 +32,8 @@ header (64 bytes) || word pool (pool size × 32 bytes) || varint stream
 ```
 
 - The **header** identifies the data and its layout.
-- The **word pool**, or simply **pool**, holds the distinct 32-byte words that the stream refers
-  to, e.g. hashes.
+- The **word pool**, or simply **pool**, holds the distinct 32-byte words that the stream refers to,
+  e.g. hashes.
 - The **varint stream**, or simply **stream**, holds everything else, in the order defined by the
   layout.
 
@@ -48,7 +49,7 @@ All multi-byte integers are big-endian.
 | 9      | 1    | Minor version number.                                                         |
 | 10     | 1    | Patch version number.                                                         |
 | 11     | 5    | Reserved, must be 0.                                                          |
-| 16     | 32   | Schema identifier (see [Schema identifier](#schema-identifier)).              |
+| 16     | 32   | Layout identifier (see [Layout identifier](#layout-identifier)).              |
 | 48     | 4    | Pool size: the number of words in the pool, as an unsigned integer.           |
 | 52     | 12   | Reserved, must be 0.                                                          |
 
@@ -61,25 +62,26 @@ The version numbers in the header are those of the
 [`starkom-scpf`](https://crates.io/crates/starkom-scpf) crate that encoded the data, which
 implements this format (see its `VERSION` constant). They version the format itself, i.e. the
 header, the pool, and the encoding of the items, not the layouts of the root messages, which are
-versioned by the [schema identifier](#schema-identifier).
+versioned by the [layout identifier](#layout-identifier).
 
 Decoders must reject data with a different major version number, and ignore the minor and patch
 version numbers. Every change of the format that existing decoders can't read requires a new major
 version of `starkom-scpf`. A minor version can add features to the format, but only new layouts
-use them, and new layouts come with new schema identifiers, which existing decoders reject anyway.
+use them, and new layouts come with new layout identifiers, which existing decoders reject anyway.
 
 The decoders hard-code the major version number they support, e.g. the Solidity decoder of
 Starkom's [EVM verifier](https://github.com/libernet-xyz/evm-verifier).
 
-### Schema identifier
+### Layout identifier
 
-The schema identifier tells apart data with different layouts, e.g. proofs of different protocols,
+The layout identifier tells apart data with different layouts, e.g. proofs of different protocols,
 or of incompatible versions of the same protocol. It's the 32-byte Keccak-256 hash of the full name
-of the root message encoded in UTF-8, i.e. the hash of Ethereum's `KECCAK256` instruction rather
-than SHA3-256 (FIPS 202), so that Solidity decoders can derive it at compile time.
+of the root message encoded in UTF-8. Note that this is Keccak-256 as in Ethereum's `KECCAK256`
+instruction, **not** SHA3-256 (FIPS 202).
 
-For example, the root message of PLONK proofs is `starkom.proto.plonk.v10.Proof`, so their schema
-identifier is `keccak256("starkom.proto.plonk.v10.Proof")`, i.e.
+For example, the root message of a [`starkom-plonk`][starkom-plonk] proof is
+`starkom.proto.plonk.v10.Proof`, so its layout identifier is
+`keccak256("starkom.proto.plonk.v10.Proof")` =
 `781bb0c4b3513d20fb38966e93697ab9c21ea4d2e48cc19ae82d8d00cd1c015e`.
 
 The version component of the protobuf package, e.g. `v10`, changes at the first incompatible change
@@ -151,17 +153,17 @@ of the item is the referenced word.
 
 ## Decoding
 
-Decoders fail if any of the following checks fails:
+Decoders must reject the data unless all of the following hold:
 
-- the data starts with the `SCPF` signature;
-- the major version number is the one they support;
-- all the reserved bytes of the header are 0;
-- the schema identifier is the one they expect;
-- the pool fits in the data;
-- no varint or inline word extends past the end of the data;
-- every pool reference is less than the pool size;
-- every field element is canonical, i.e. less than the modulus of its field;
-- the stream ends exactly at the end of the data.
+- the data must start with the `SCPF` signature;
+- the major version number must be the one they support;
+- all the reserved bytes of the header must be 0;
+- the layout identifier must be the one they expect;
+- the pool must fit in the data;
+- every varint and inline word must fit in the data;
+- every pool reference must be less than the pool size;
+- every field element must be canonical, i.e. less than the modulus of its field;
+- the stream must end exactly at the end of the data.
 
 ## Non-canonical encodings
 
@@ -188,6 +190,9 @@ The PLONK proofs contain a DEEP-FRI proof of `starkom-pcs`, whose FRI commitment
 pushed by [`Proof::encode_scpf_fri_commitment`][pcs-proof-encode-scpf-fri-commitment] and
 [`Proof::encode_scpf_queries`][pcs-proof-encode-scpf-queries] in `starkom-pcs`.
 
+[bluesky]: https://crates.io/crates/starkom-bluesky
 [pcs-proof-encode-scpf-fri-commitment]: https://docs.rs/starkom-pcs/latest/starkom_pcs/struct.Proof.html#method.encode_scpf_fri_commitment
 [pcs-proof-encode-scpf-queries]: https://docs.rs/starkom-pcs/latest/starkom_pcs/struct.Proof.html#method.encode_scpf_queries
 [plonk-proof-to-scpf]: https://docs.rs/starkom-plonk/latest/starkom_plonk/struct.Proof.html#method.to_scpf
+[schraderbrau]: https://crates.io/crates/starkom-schraderbrau
+[starkom-plonk]: https://crates.io/crates/starkom-plonk
