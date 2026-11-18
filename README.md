@@ -15,8 +15,8 @@ the pool of distinct 32-byte words, and the encoding of the items of the stream 
 words, and pool references). The layout of the stream, i.e. which items come in which order, is up
 to the caller, which encodes a protobuf message (the _root message_) by pushing its items in order
 and omitting everything that the decoder can derive. For example, [`starkom-plonk`][starkom-plonk]
-encodes PLONK proofs with [`Proof::to_scpf`][plonk-proof-to-scpf], and [`starkom-pcs`][starkom-pcs]
-provides the methods that push the parts of the DEEP-FRI proofs they contain.
+encodes PLONK proofs with [`Proof::to_scpf`][plonk-proof-to-scpf], which transcodes their protobufs
+to SCPF.
 
 SCPF intentionally only supports prime fields of about 256 bits, such as BlueSky, Schraderbrau, and
 the scalar field of BLS12-381, whose elements fit in single EVM words.
@@ -47,12 +47,11 @@ The version of this crate is the version of the format, and the encoder writes i
 the data (see [`VERSION`][version]). Decoders only check the major version number.
 
 The layouts are versioned separately, by the _layout identifier_ in the header: the Keccak-256 hash
-of the full name of the root message, e.g. `starkom.proto.plonk.v10.Proof`. The version component of
-the protobuf package (`v10`) changes at the first incompatible change, so decoders can tell
+of the full name of the root message, e.g. `starkom.proto.plonk.v11.Proof`. The version component of
+the protobuf package (`v11`) changes at the first incompatible change, so decoders can tell
 compatible data apart from incompatible data by checking the identifier.
 
 [encoder]: https://docs.rs/starkom-scpf/latest/starkom_scpf/struct.Encoder.html
 [plonk-proof-to-scpf]: https://docs.rs/starkom-plonk/latest/starkom_plonk/struct.Proof.html#method.to_scpf
-[starkom-pcs]: https://docs.rs/starkom-pcs
 [starkom-plonk]: https://docs.rs/starkom-plonk
 [version]: https://docs.rs/starkom-scpf/latest/starkom_scpf/constant.VERSION.html

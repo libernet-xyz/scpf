@@ -27,7 +27,7 @@ pub(crate) const HEADER_SIZE: usize = 64;
 
 /// Returns the layout identifier of SCPF data whose root message is a protobuf message of type `M`:
 /// the Keccak-256 hash of the [full name of the message](`prost::Name::full_name`), e.g.
-/// `starkom.proto.plonk.v10.Proof`.
+/// `starkom.proto.plonk.v11.Proof`.
 ///
 /// This is the hash of Ethereum's `KECCAK256` instruction rather than SHA3-256 (FIPS 202).
 pub fn layout_identifier<M: prost::Name>() -> H256 {

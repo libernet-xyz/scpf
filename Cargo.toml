@@ -1,6 +1,6 @@
 [package]
 name = "starkom-scpf"
-version = "1.0.1"
+version = "1.0.2"
 description = "The encoder of the Starkom Compact Proof Format (SCPF) for EVM verifiers."
 license = "Apache-2.0"
 repository = "https://github.com/libernet-xyz/scpf.git"

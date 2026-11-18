@@ -80,11 +80,11 @@ of the root message encoded in UTF-8. Note that this is Keccak-256 as in Ethereu
 instruction, **not** SHA3-256 (FIPS 202).
 
 For example, the root message of a [`starkom-plonk`][starkom-plonk] proof is
-`starkom.proto.plonk.v10.Proof`, so its layout identifier is
-`keccak256("starkom.proto.plonk.v10.Proof")` =
-`781bb0c4b3513d20fb38966e93697ab9c21ea4d2e48cc19ae82d8d00cd1c015e`.
+`starkom.proto.plonk.v11.Proof`, so its layout identifier is
+`keccak256("starkom.proto.plonk.v11.Proof")` =
+`7cda700e3097eeb7a607a078ad72d656f380990a899edb365d555d4948470125`.
 
-The version component of the protobuf package, e.g. `v10`, changes at the first incompatible change
+The version component of the protobuf package, e.g. `v11`, changes at the first incompatible change
 of the protobuf messages or of the layout, so decoders can tell compatible data apart from
 incompatible data by checking the identifier.
 
@@ -180,19 +180,18 @@ the message, and a proof is valid or invalid regardless of how it's encoded.
 The layout of the data of every root message is defined by its encoder, which pushes the items of
 the stream in order to the `Encoder` of the `starkom-scpf` crate and omits everything that the
 decoder can derive, e.g. from the protocol parameters, from the circuit, or from the Fiat-Shamir
-challenges. The encoders document their layouts:
+challenges. The repositories of the encoders specify their layouts:
 
-| Root message                    | Encoder                                                    |
-| ------------------------------- | ---------------------------------------------------------- |
-| `starkom.proto.plonk.v10.Proof` | [`Proof::to_scpf`][plonk-proof-to-scpf] in `starkom-plonk` |
+| Root message                    | Encoder                                                    | Layout                         |
+| ------------------------------- | ---------------------------------------------------------- | ------------------------------ |
+| `starkom.proto.plonk.v11.Proof` | [`Proof::to_scpf`][plonk-proof-to-scpf] in `starkom-plonk` | [`SCPF.md`][plonk-scpf-layout] |
 
-The PLONK proofs contain a DEEP-FRI proof of `starkom-pcs`, whose FRI commitment and queries are
-pushed by [`Proof::encode_scpf_fri_commitment`][pcs-proof-encode-scpf-fri-commitment] and
-[`Proof::encode_scpf_queries`][pcs-proof-encode-scpf-queries] in `starkom-pcs`.
+`Proof::to_scpf` serializes the proof to its protobuf and transcodes the protobuf to SCPF, including
+the DEEP-FRI commitment and proof of `starkom-pcs` that the PLONK proof contains, so its layout
+follows the fields of the protobuf messages.
 
 [bluesky]: https://crates.io/crates/starkom-bluesky
-[pcs-proof-encode-scpf-fri-commitment]: https://docs.rs/starkom-pcs/latest/starkom_pcs/struct.Proof.html#method.encode_scpf_fri_commitment
-[pcs-proof-encode-scpf-queries]: https://docs.rs/starkom-pcs/latest/starkom_pcs/struct.Proof.html#method.encode_scpf_queries
 [plonk-proof-to-scpf]: https://docs.rs/starkom-plonk/latest/starkom_plonk/struct.Proof.html#method.to_scpf
+[plonk-scpf-layout]: https://github.com/libernet-xyz/plonk/blob/main/SCPF.md
 [schraderbrau]: https://crates.io/crates/starkom-schraderbrau
 [starkom-plonk]: https://crates.io/crates/starkom-plonk
