@@ -1,6 +1,6 @@
 [package]
 name = "starkom-scpf"
-version = "1.0.2"
+version = "1.0.3"
 description = "The encoder of the Starkom Compact Proof Format (SCPF) for EVM verifiers."
 license = "Apache-2.0"
 repository = "https://github.com/libernet-xyz/scpf.git"
@@ -15,10 +15,10 @@ crate-type = ["rlib", "cdylib"]
 
 [dependencies]
 primitive-types = "0.14.0"
-prost = "0.14.4"
+prost = "0.14.6"
 sha3 = "0.12.0"
 starkom-ff = "5.0.2"
 
 [dev-dependencies]
-prost-types = "0.14.4"
+prost-types = "0.14.6"
 starkom-bluesky = "4.0.1"
